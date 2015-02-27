@@ -119,8 +119,6 @@ wwan0
 
 cat > /etc/sierra/gps-enable.chat << gps-enable.chat
 ""
-ATI5 "Model: AirCard 320U"-ATI5 "Model: AirCard 320U"
-""
 AT!ENTERCND="A710" OK
 ""
 AT!CUSTOM="GPSENABLE",1 OK
