@@ -1,31 +1,45 @@
 #!/bin/bash
 
+grep -q max_usb_current /boot/config.txt || echo "max_usb_current=1" >> /boot/config.txt
+sed -ri 's/max_usb_current=.*/max_usb_current=1\n/' /boot/config.txt
+
+SIERRA_DEV_PREFIX=sierra.wwan
+
 apt-get -y install gpsd gpsd-clients chrony ppp
 
-if [[ ! -e /etc/sierra ]]; then 
-  mkdir /etc/sierra
-fi
+[[ ! -e /etc/sierra ]] && mkdir /etc/sierra
 
-sed -ri 's/^DEVICES=".*"/DEVICES="\/dev\/ttyUSB2"/' /etc/default/gpsd 
-sed -ri 's/^GPSD_OPTIONS=".*"/GPSD_OPTIONS="-n"/' /etc/default/gpsd 
+#sed_cmd="s#^DEVICES=\".*\"#DEVICES=\"/dev/$SIERRA_DEV_PREFIX.nmea\"#"
+#sed -ri "$sed_cmd" /etc/default/gpsd 
+sed -ri 's/^GPSD_OPTIONS=".*"/GPSD_OPTIONS="-n"/' /etc/default/gpsd
 
 echo "options sierra nmea=1" > /etc/modprobe.d/sierra.conf
-echo "KERNEL==\"ttyUSB?\", DRIVERS==\"usb\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1199\", ATTRS{idProduct}==\"68aa\", SYMLINK+=\"sierra.wwan.%n\"" > /etc/udev/rules.d/93-sierra.rules
+rm -f /etc/udev/rules.d/*-sierra.rules
+echo "KERNEL==\"ttyUSB?\", DRIVERS==\"usb\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1199\", ATTRS{idProduct}==\"68aa\", SYMLINK+=\"$SIERRA_DEV_PREFIX.%n\"" > /etc/udev/rules.d/93-sierra.rules
+echo "KERNEL==\"ttyUSB?\", DRIVERS==\"usb\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1199\", ATTRS{idProduct}==\"68aa\", RUN+=\"/usr/local/bin/sierra-state\"" > /etc/udev/rules.d/94-sierra.rules
 
 cat > /usr/local/bin/sierra-state << sierra-state
 #!/bin/bash
 
-SIERRA_DEV_PREFIX=/dev/sierra.wwan
-
-declare -a SIERRA_PORTS=(\$( ls \$SIERRA_DEV_PREFIX.* ))
-
+declare -a SIERRA_PORTS=(\$( ls /dev/$SIERRA_DEV_PREFIX.[0-9]* ))
 SIERRA_PORT_COUNT=\${#SIERRA_PORTS[@]}
-echo "export SIERRA_CMD_PORT=\${SIERRA_PORTS[-2]}"
+
+[[ "\$SIERRA_PORT_COUNT" -lt 4 ]] && exit
+sleep 2
+
+rm -f /dev/$SIERRA_DEV_PREFIX.nmea
+rm -f /dev/$SIERRA_DEV_PREFIX.cmd
+
+SIERRA_CMD_PORT=\${SIERRA_PORTS[-2]}
 
 if [[ "\$SIERRA_PORT_COUNT" == "4" ]]; then
-  echo "export SIERRA_GPS=0"
+  gpsdctl remove /dev/$SIERRA_DEV_PREFIX.nmea
 else
-  echo "export SIERRA_GPS=1"
+  SIERRA_NMEA_PORT=\${SIERRA_PORTS[-3]}
+  ln -s \$SIERRA_NMEA_PORT /dev/$SIERRA_DEV_PREFIX.nmea
+  ln -s \$SIERRA_CMD_PORT /dev/$SIERRA_DEV_PREFIX.cmd
+  /etc/init.d/gpsd start
+  gpsdctl add /dev/$SIERRA_DEV_PREFIX.nmea
 fi
 sierra-state
 
@@ -39,42 +53,53 @@ if [[ "\$1" != "enable" && "\$1" != "disable" ]]; then
   exit 1
 fi
 
-\$(sierra-state)
-
+stty -F /dev/$SIERRA_DEV_PREFIX.cmd 9600 raw
 if [[ "\$SIERRA_GPS" == "0" && "\$1" == "enable" ]]; then
-  chat -f /etc/sierra/gps-enable.chat < \$SIERRA_CMD_PORT > \$SIERRA_CMD_PORT
+  chat -f /etc/sierra/gps-enable.chat < /dev/$SIERRA_DEV_PREFIX.cmd > /dev/$SIERRA_DEV_PREFIX.cmd
 fi
 
 if [[ "\$SIERRA_GPS" == "1" && "\$1" == "disable" ]]; then
-  chat -f /etc/sierra/gps-disable.chat < \$SIERRA_CMD_PORT > \$SIERRA_CMD_PORT
+  chat -f /etc/sierra/gps-disable.chat < /dev/$SIERRA_DEV_PREFIX.cmd > /dev/$SIERRA_DEV_PREFIX.cmd
 fi
 sierra-gps
 
 chmod o+x /usr/local/bin/sierra-gps
 
+# ATI5 "Model: AirCard 320U"-ATI5 "Model: AirCard 320U"
 cat > /etc/sierra/start.chat << start.chat
 ""
-ATI5 AirCard
-AT+CGDCONT=1,"IP","Telstra.datapack" OK
-AT+CFUN=1 OK
-AT!SCDFTPROF=1 OK
-AT!SCACT=1,1 OK
-AT!SCPROF=1,"",1,0,0,0 OK
+ATE0V1&F&D2&C1S0=0 OK-ATE0V1&F&D2&C1S0=0 OK
+""
+ATZ OK-ATZ OK
+""
+AT+CGDCONT=1,"IP","Telstra.datapack" OK-AT+CGDCONT=1,"IP","Telstra.datapack" OK
+""
+AT+CFUN=1 OK-AT+CFUN=1 OK
+""
+AT!SCDFTPROF=1 OK-AT!SCDFTPROF=1 OK
+""
+AT!SCACT=1,1 OK-AT!SCACT=1,1 OK
+""
+AT!SCPROF=1,"",1,0,0,0 OK-AT!SCPROF=1,"",1,0,0,0 OK
 start.chat
 
 cat > /etc/sierra/stop.chat << stop.chat
 ""
-ATI5 AirCard
+ATZ OK-ATZ OK
+""
 AT!SCACT=0,1 OK
 stop.chat
 
 cat > /usr/local/bin/sierra << sierra
 #!/bin/bash
 
-\$(sierra-state)
+while [[ ! -e /dev/$SIERRA_DEV_PREFIX.cmd ]]; do
+  sleep 1
+done
+sleep 1
 
-stty -F \$SIERRA_CMD_PORT 9600 raw
-chat -f /etc/sierra/\$MODE.chat < \$SIERRA_CMD_PORT > \$SIERRA_CMD_PORT
+stty -F /dev/$SIERRA_DEV_PREFIX.cmd 9600 raw
+chat -f /etc/sierra/\$MODE.chat < /dev/$SIERRA_DEV_PREFIX.cmd > /dev/$SIERRA_DEV_PREFIX.cmd
 ERR_CODE=\$?
 if [[ "\$ERR_CODE" != "0" ]]; then
   echo "Failed to init sierra wireless device. Got code \$ERR_CODE."
@@ -94,23 +119,27 @@ wwan0
 
 cat > /etc/sierra/gps-enable.chat << gps-enable.chat
 ""
-ATI5 AirCard
+ATI5 "Model: AirCard 320U"-ATI5 "Model: AirCard 320U"
+""
 AT!ENTERCND="A710" OK
+""
 AT!CUSTOM="GPSENABLE",1 OK
+""
 AT!CUSTOM="GPSREFLOC",1 OK
+""
 AT!GPSAUTOSTART=1 OK
 gps-enable.chat
 
 cat > /etc/sierra/gps-disable.chat << gps-disable.chat
 ""
-ATI5 Model: AirCard 320U
 AT!ENTERCND="A710" OK
+""
 AT!CUSTOM="GPSENABLE",0 OK
+""
 AT!CUSTOM="GPSREFLOC",0 OK
+""
 AT!GPSAUTOSTART=0 OK
 gps-disable.chat
 
 # shutdown -r now
-
-
 
