@@ -1,0 +1,4 @@
+allow-hotplug wwan0
+iface wwan0 inet dhcp
+    pre-up /usr/local/bin/sierra
+    post-down /usr/local/bin/sierra

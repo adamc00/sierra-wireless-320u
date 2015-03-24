@@ -1,0 +1,2 @@
+KERNEL=="ttyUSB?", DRIVERS=="usb", SUBSYSTEMS=="usb", ATTRS{idVendor}=="0f3d", ATTRS{idProduct}=="68aa", SYMLINK+="sierra.wwan.%n"
+KERNEL=="wwan0", SUBSYSTEM=="net", ATTRS{idVendor}=="0f3d", ATTRS{idProduct}=="68aa", RUN+="/usr/local/bin/sierra-state"

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+grep -q max_usb_current /boot/config.txt || echo "max_usb_current=1" >> /boot/config.txt
+sed -ri 's/max_usb_current=.*/max_usb_current=1\n/' /boot/config.txt
+
+SIERRA_DEV_PREFIX=sierra.wwan
+
+[[ "$1" == "update" ]] && apt-get update 
+apt-get -y install gpsd gpsd-clients chrony ppp
+
+sed -ri 's/^GPSD_OPTIONS=".*"/GPSD_OPTIONS="-n"/' /etc/default/gpsd 
+
+
