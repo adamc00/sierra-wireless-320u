@@ -4,7 +4,10 @@ declare -a SIERRA_PORTS=($( ls /dev/sierra.wwan.[0-9]* ))
 SIERRA_PORT_COUNT=${#SIERRA_PORTS[@]}
 
 [[ "$SIERRA_PORT_COUNT" -lt 4 ]] && exit
-sleep 2
+
+sleep 5 # Give system time for final port to arrive
+declare -a SIERRA_PORTS=($( ls /dev/sierra.wwan.[0-9]* ))
+SIERRA_PORT_COUNT=${#SIERRA_PORTS[@]}
 
 rm -f /dev/sierra.wwan.nmea
 rm -f /dev/sierra.wwan.cmd
