@@ -1,6 +1,6 @@
 #!/bin/sh
 
-sleep 5 # Give system time for final port to arrive
+sleep 5 # Give system time to stabilise
 
 set -- $( ls /dev/sierra.wwan.[0-9]* )
 SIERRA_PORT_COUNT=$#
