@@ -1,23 +1,25 @@
-#!/bin/bash
+#!/bin/sh
 
-declare -a SIERRA_PORTS=($( ls /dev/sierra.wwan.[0-9]* ))
-SIERRA_PORT_COUNT=${#SIERRA_PORTS[@]}
+sleep 5 # Give system time for final port to arrive
 
-[[ "$SIERRA_PORT_COUNT" -lt 4 ]] && exit
-sleep 2
+set -- $( ls /dev/sierra.wwan.[0-9]* )
+SIERRA_PORT_COUNT=$#
+
+if [ "$SIERRA_PORT_COUNT" -lt "4" ]; then
+  echo "$0 found less than 4 ports, exiting."
+  exit
+fi
 
 rm -f /dev/sierra.wwan.nmea
 rm -f /dev/sierra.wwan.cmd
 
-SIERRA_CMD_PORT=${SIERRA_PORTS[-2]}
-ln -s $SIERRA_CMD_PORT /dev/sierra.wwan.cmd
-
-if [[ "$SIERRA_PORT_COUNT" == "4" ]]; then
+if [ "$SIERRA_PORT_COUNT" = "4" ]; then
+  ln -s /dev/sierra.wwan.3 /dev/sierra.wwan.cmd
   service gpsd stop
   gpsdctl remove /dev/sierra.wwan.nmea
 else
-  SIERRA_NMEA_PORT=${SIERRA_PORTS[-3]}
-  ln -s $SIERRA_NMEA_PORT /dev/sierra.wwan.nmea
+  ln -s /dev/sierra.wwan.3 /dev/sierra.wwan.cmd
+  ln -s /dev/sierra.wwan.4 /dev/sierra.wwan.nmea
   service gpsd start
   gpsdctl add /dev/sierra.wwan.nmea
 fi
