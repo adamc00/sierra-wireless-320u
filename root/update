@@ -1,0 +1,13 @@
+#!/bin/bash
+
+cp /etc/sierra/gps-disable.chat etc/sierra/gps-disable.chat
+cp /etc/sierra/start.chat etc/sierra/start.chat
+cp /etc/sierra/stop.chat etc/sierra/stop.chat
+cp /etc/sierra/gps-enable.chat etc/sierra/gps-enable.chat
+cp /etc/default/gpsd etc/default/gpsd
+cp /etc/modprobe.d/sierra.conf etc/modprobe.d/sierra.conf
+cp /etc/network/interfaces.d/wwan0 etc/network/interfaces.d/wwan0
+cp /etc/udev/rules.d/93-sierra.rules etc/udev/rules.d/93-sierra.rules
+cp /usr/local/bin/sierra-gps usr/local/bin/sierra-gps
+cp /usr/local/bin/sierra usr/local/bin/sierra
+cp /usr/local/bin/sierra-state usr/local/bin/sierra-state
