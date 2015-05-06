@@ -14,12 +14,12 @@ rm -f /dev/sierra.wwan.nmea
 rm -f /dev/sierra.wwan.cmd
 
 if [ "$SIERRA_PORT_COUNT" = "4" ]; then
-  ln -s /dev/sierra.wwan.3 /dev/sierra.wwan.cmd
+  ln -s /dev/sierra.wwan.2 /dev/sierra.wwan.cmd
   service gpsd stop
   gpsdctl remove /dev/sierra.wwan.nmea
 else
+  ln -s /dev/sierra.wwan.2 /dev/sierra.wwan.nmea
   ln -s /dev/sierra.wwan.3 /dev/sierra.wwan.cmd
-  ln -s /dev/sierra.wwan.4 /dev/sierra.wwan.nmea
   service gpsd start
   gpsdctl add /dev/sierra.wwan.nmea
 fi
