@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 
-[[ "$MODE" == "stop" && ! -e /dev/sierra.wwan.cmd ]] && exit
+[ "$MODE" == "stop" ] && [ ! -e /dev/sierra.wwan.cmd ] && exit
 
 echo "$0: $MODE"
 
-while [[ ! -e /dev/sierra.wwan.cmd ]]; do
+while [ ! -e /dev/sierra.wwan.cmd ]; do
   sleep 1
   echo "$0: waiting"
 done
@@ -13,6 +13,6 @@ sleep 1
 stty -F /dev/sierra.wwan.cmd 9600 raw
 chat -e -v -f /etc/sierra/$MODE.chat < /dev/sierra.wwan.cmd > /dev/sierra.wwan.cmd
 ERR_CODE=$?
-if [[ "$ERR_CODE" != "0" ]]; then
+if [ "$ERR_CODE" != "0" ]; then
   echo "$0: Got error $ERR_CODE initialising sierra wireless device."
 fi
