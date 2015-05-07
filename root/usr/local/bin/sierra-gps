@@ -1,15 +1,15 @@
-#!/bin/bash
+#!/bin/sh
 
-if [[ "$1" != "enable" && "$1" != "disable" ]]; then
+if [ "$1" != "enable" ] && [ "$1" != "disable" ]; then
   echo "usage: $0 [enable|disable]"
   exit 1
 fi
 
 stty -F /dev/sierra.wwan.cmd 9600 raw
-if [[ ! -e /dev/sierra.wwan.nmea && "$1" == "enable" ]]; then
+if [ ! -e /dev/sierra.wwan.nmea ] && [ "$1" == "enable" ]; then
   chat -f /etc/sierra/gps-enable.chat < /dev/sierra.wwan.cmd > /dev/sierra.wwan.cmd
 fi
 
-if [[ -e /dev/sierra.wwan.nmea && "$1" == "disable" ]]; then
+if [ -e /dev/sierra.wwan.nmea ] && [ "$1" == "disable" ]; then
   chat -f /etc/sierra/gps-disable.chat < /dev/sierra.wwan.cmd > /dev/sierra.wwan.cmd
 fi
