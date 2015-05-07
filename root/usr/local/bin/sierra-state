@@ -1,25 +1,33 @@
 #!/bin/sh
 
+# is gpsd installed
+GPSD_EXISTS=1
+type gpsd >/dev/null 2>&1 || GPSD_EXISTS=0
+
 sleep 5 # Give system time to stabilise
 
-set -- $( ls /dev/sierra.wwan.[0-9]* )
-SIERRA_PORT_COUNT=$#
+set -- $( ls /dev/sierra.wwan.[0-9]* ) 
+SIERRA_PORT_COUNT=$#                   
 
 if [ "$SIERRA_PORT_COUNT" -lt "4" ]; then
   echo "$0 found less than 4 ports, exiting."
-  exit
-fi
+  exit                                       
+fi                                           
 
-rm -f /dev/sierra.wwan.nmea
-rm -f /dev/sierra.wwan.cmd
+rm -f /dev/sierra.wwan.nmea                  
+rm -f /dev/sierra.wwan.cmd                   
 
-if [ "$SIERRA_PORT_COUNT" = "4" ]; then
+if [ "$SIERRA_PORT_COUNT" = "4" ]; then      
   ln -s /dev/sierra.wwan.2 /dev/sierra.wwan.cmd
-  service gpsd stop
-  gpsdctl remove /dev/sierra.wwan.nmea
-else
+  if [ "$GPSD_EXISTS" = "1" ]; then            
+    service gpsd stop                          
+    gpsdctl remove /dev/sierra.wwan.nmea       
+  fi                                           
+else                                           
   ln -s /dev/sierra.wwan.2 /dev/sierra.wwan.nmea
-  ln -s /dev/sierra.wwan.3 /dev/sierra.wwan.cmd
-  service gpsd start
-  gpsdctl add /dev/sierra.wwan.nmea
+  ln -s /dev/sierra.wwan.3 /dev/sierra.wwan.cmd 
+  if [ "$GPSD_EXISTS" = "1" ]; then             
+    service gpsd start                          
+    gpsdctl add /dev/sierra.wwan.nmea           
+  fi                                            
 fi
